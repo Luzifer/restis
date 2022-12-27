@@ -16,6 +16,7 @@ import (
 
 var (
 	cfg = struct {
+		DisableCORS     bool   `flag:"disable-cors" default:"false" description:"Disable setting CORS headers for all requests"`
 		Listen          string `flag:"listen" default:":3000" description:"Port/IP to listen on"`
 		LogLevel        string `flag:"log-level" default:"info" description:"Log level (debug, info, warn, error, fatal)"`
 		RedisConnString string `flag:"redis-conn-string" default:"redis://localhost:6379/0" description:"Connection string for redis"`
@@ -61,6 +62,20 @@ func main() {
 		client = redis.NewClient(redisOpts)
 		router = mux.NewRouter()
 	)
+
+	if !cfg.DisableCORS {
+		router.Use(corsMiddleware)
+	}
+
+	router.MethodNotAllowedHandler = corsMiddleware(http.HandlerFunc(func(res http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodOptions {
+			// Most likely JS client asking for CORS headers
+			res.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		res.WriteHeader(http.StatusMethodNotAllowed)
+	}))
 
 	router.Methods(http.MethodDelete).HandlerFunc(handlerDelete(client))
 	router.Methods(http.MethodGet).HandlerFunc(handlerGet(client))

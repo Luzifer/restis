@@ -13,7 +13,8 @@
 
 ```console
 # restis --help
-Usage of restis:
+Usage of ./restis:
+      --disable-cors               Disable setting CORS headers for all requests
       --listen string              Port/IP to listen on (default ":3000")
       --log-level string           Log level (debug, info, warn, error, fatal) (default "info")
       --redis-conn-string string   Connection string for redis (default "redis://localhost:6379/0")
