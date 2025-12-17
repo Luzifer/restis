@@ -1,4 +1,4 @@
-FROM golang:alpine as builder
+FROM golang:1.25-alpine as builder
 
 COPY . /src/restis
 WORKDIR /src/restis
@@ -15,9 +15,10 @@ RUN set -ex \
       -modcacherw \
       -trimpath
 
-FROM alpine:latest
 
-LABEL maintainer "Knut Ahlers <knut@ahlers.me>"
+FROM alpine:3.22
+
+LABEL maintainer="Knut Ahlers <knut@ahlers.me>"
 
 RUN set -ex \
  && apk --no-cache add \
