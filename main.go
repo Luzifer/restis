@@ -1,3 +1,4 @@
+// Restis Server Application
 package main
 
 import (
@@ -6,12 +7,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/Luzifer/rconfig/v2"
 	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
-
-	"github.com/Luzifer/rconfig/v2"
 )
 
 var (
@@ -30,17 +29,12 @@ var (
 func initApp() error {
 	rconfig.AutoEnv(true)
 	if err := rconfig.ParseAndValidate(&cfg); err != nil {
-		return errors.Wrap(err, "parsing cli options")
-	}
-
-	if cfg.VersionAndExit {
-		fmt.Printf("git-changerelease %s\n", version)
-		os.Exit(0)
+		return fmt.Errorf("parsing cli options: %w", err)
 	}
 
 	l, err := logrus.ParseLevel(cfg.LogLevel)
 	if err != nil {
-		return errors.Wrap(err, "parsing log-level")
+		return fmt.Errorf("parsing log-level: %w", err)
 	}
 	logrus.SetLevel(l)
 
@@ -51,6 +45,11 @@ func main() {
 	var err error
 	if err = initApp(); err != nil {
 		logrus.WithError(err).Fatal("initializing app")
+	}
+
+	if cfg.VersionAndExit {
+		fmt.Printf("restis %s\n", version) //nolint:forbidigo // fine to print version to stdout
+		os.Exit(0)
 	}
 
 	redisOpts, err := redis.ParseURL(cfg.RedisConnString)

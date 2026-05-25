@@ -2,13 +2,15 @@ package main
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
+	"github.com/sirupsen/logrus"
 )
 
 func keyFromRequest(r *http.Request) string {
@@ -22,7 +24,7 @@ func keyFromRequest(r *http.Request) string {
 func handlerDelete(client *redis.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := client.Del(r.Context(), keyFromRequest(r)).Err(); err != nil {
-			http.Error(w, errors.Wrap(err, "deleting key").Error(), http.StatusInternalServerError)
+			http.Error(w, fmt.Errorf("deleting key: %w", err).Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -36,13 +38,15 @@ func handlerGet(client *redis.Client) http.HandlerFunc {
 		switch {
 		case err == nil:
 			w.WriteHeader(http.StatusOK)
-			w.Write(content)
+			if _, err = w.Write(content); err != nil {
+				logrus.WithError(err).Debug("writing HTTP response")
+			}
 
 		case errors.Is(err, redis.Nil):
 			w.WriteHeader(http.StatusNotFound)
 
 		default:
-			http.Error(w, errors.Wrap(err, "getting key").Error(), http.StatusInternalServerError)
+			http.Error(w, fmt.Errorf("getting key: %w", err).Error(), http.StatusInternalServerError)
 		}
 	}
 }
@@ -57,18 +61,18 @@ func handlerPut(client *redis.Client) http.HandlerFunc {
 
 		if rawEx := r.URL.Query().Get("expire"); rawEx != "" {
 			if expire, err = time.ParseDuration(rawEx); err != nil {
-				http.Error(w, errors.Wrap(err, "parsing expiry").Error(), http.StatusBadRequest)
+				http.Error(w, fmt.Errorf("parsing expiry: %w", err).Error(), http.StatusBadRequest)
 				return
 			}
 		}
 
 		if _, err = io.Copy(data, r.Body); err != nil {
-			http.Error(w, errors.Wrap(err, "reading payload").Error(), http.StatusBadRequest)
+			http.Error(w, fmt.Errorf("reading payload: %w", err).Error(), http.StatusBadRequest)
 			return
 		}
 
 		if err = client.Set(r.Context(), keyFromRequest(r), data.Bytes(), expire).Err(); err != nil {
-			http.Error(w, errors.Wrap(err, "setting key").Error(), http.StatusInternalServerError)
+			http.Error(w, fmt.Errorf("setting key: %w", err).Error(), http.StatusInternalServerError)
 			return
 		}
 
