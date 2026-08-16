@@ -6,7 +6,7 @@ require (
 	github.com/Luzifer/rconfig/v2 v2.6.2
 	github.com/gorilla/mux v1.8.1
 	github.com/redis/go-redis/v9 v9.22.0
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.10.0
 )
 
 require (
